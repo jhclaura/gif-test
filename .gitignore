@@ -1,0 +1,82 @@
+
+# ====================================================================== #
+# Source: https://github.com/Murkantilism/skylabgame/blob/dev/.gitignore #
+# ====================================================================== #
+
+# =============== #
+# Unity generated #
+# =============== #
+[Tt]emp/
+[Oo]bj/
+[Uu]nityGenerated/
+[Ll]ibrary/
+[Bb]uild/
+[Bb]uilds/
+[Ee]xport/
+[Mm]ockups/
+sysinfo.txt
+*.stackdump
+
+# =============== #
+# Video Renders   #
+# =============== #
+[Cc]apture/
+
+# =============== #
+# Big Asset #
+# =============== #
+# [Aa]ssets/StreamingAssets/
+ 
+# ===================================== #
+# Visual Studio / MonoDevelop generated #
+# ===================================== #
+ExportedObj/
+*.unityproj
+*.sln
+*.tmp
+*.userprefs
+*.pidb
+*.svd
+*.userprefs
+*.csproj
+*.pidb
+*.suo
+*.sln
+*.user
+*.unityproj
+*.booproj
+.vs/
+/.idea*/
+ 
+# Unity3D Generated Files on Crash Reports
+sysinfo.txt
+ 
+# ============ #
+# OS generated #
+# ============ #
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+ehthumbs.db
+[Tt]humbs.db
+[Dd]esktop.ini
+
+Assets/Plugins/iOS/libgvrunity.a
+
+# ============== #
+# Node generated #
+# ============== #
+[Ss]erver/node_modules/
+Assets/StreamingAssets/StickerData/sheet-0.mov
+Assets/StreamingAssets/StickerData/sheet-0.mov.meta
+Assets/StreamingAssets/StickerData/sheet-1.mov
+Assets/StreamingAssets/StickerData/sheet-0_old.mov
+Assets/StreamingAssets/StickerData/sheet-0_2.mov
+Assets/StreamingAssets/StickerData/sheet-0_3.mov
+Assets/StreamingAssets/StickerData/sheet-2.mov
+Assets/StreamingAssets/StickerData/sheet-0_short.mov
