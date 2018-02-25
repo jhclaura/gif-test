@@ -143,7 +143,12 @@ public class MainThreadQueue
         /// <summary>
         /// Set a Transform's position
         /// </summary>
-        SetPosition
+        SetPosition,
+
+        /// <summary>
+        /// Instantiate a new Texture2D
+        /// </summary>
+        NewTexture2D
     }
 
     /// <summary>
@@ -225,10 +230,25 @@ public class MainThreadQueue
         }
     }
 
+    private class NewTexture2DCommand : BaseCommand
+    {
+        public int Width;
+        public int Height;
+        public byte[] Image;
+
+        public Result<Texture2D> Result;
+
+        public NewTexture2DCommand()
+        {
+            Type = CommandType.NewTexture2D;
+        }
+    }
+
     // Pools of command objects used to avoid creating more than we need
     private Stack<NewGameObjectCommand> newGameObjectPool;
     private Stack<GetTransformCommand> getTransformPool;
     private Stack<SetPositionCommand> setPositionPool;
+    private Stack<NewTexture2DCommand> newTexture2DPool;
 
     // Queue of commands to execute
     private Queue<BaseCommand> commandQueue;
@@ -244,6 +264,7 @@ public class MainThreadQueue
         newGameObjectPool = new Stack<NewGameObjectCommand>();
         getTransformPool = new Stack<GetTransformCommand>();
         setPositionPool = new Stack<SetPositionCommand>();
+        newTexture2DPool = new Stack<NewTexture2DCommand>();
         commandQueue = new Queue<BaseCommand>();
         executeLimitStopwatch = new Stopwatch();
     }
@@ -386,6 +407,26 @@ public class MainThreadQueue
         QueueCommand(cmd);
     }
 
+    public void NewTexture2D(
+        int width,
+        int height,
+        byte[] image,
+        Result<Texture2D> result)
+    {
+        Assert.IsTrue(width > 0);
+        Assert.IsTrue(height > 0);
+        Assert.IsTrue(image != null);
+        Assert.IsTrue(result != null);
+
+        result.Reset();
+        NewTexture2DCommand cmd = GetFromPool(newTexture2DPool);
+        cmd.Width = width;
+        cmd.Height = height;
+        cmd.Image = image;
+        cmd.Result = result;
+        QueueCommand(cmd);
+    }
+
     /// <summary>
     /// Execute commands until there are none left or a maximum time is used
     /// </summary>
@@ -407,6 +448,7 @@ public class MainThreadQueue
             {
                 if (commandQueue.Count == 0)
                 {
+                    //UnityEngine.Debug.Log("commandQueue.Count == 0, break");
                     break;
                 }
                 baseCmd = commandQueue.Dequeue();
@@ -483,6 +525,35 @@ public class MainThreadQueue
 
                         // Make the result ready
                         result.Ready();
+                        break;
+                    }
+                case CommandType.NewTexture2D:
+                    {
+                        UnityEngine.Debug.Log("CommandType.NewTexture2D start");
+
+                        // Extract the command's fields
+                        NewTexture2DCommand cmd = (NewTexture2DCommand)baseCmd;
+                        int width = cmd.Width;
+                        int height = cmd.Height;
+                        byte[] image = cmd.Image;
+                        Result<Texture2D> result = cmd.Result;
+
+                        // Reset the command's fields
+                        cmd.Width = 0;
+                        cmd.Height = 0;
+                        cmd.Image = null;
+                        cmd.Result = null;
+
+                        // Return the command to its pool
+                        ReturnToPool(newTexture2DPool, cmd);
+
+                        // Do the work
+                        Texture2D _tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+                        _tex.hideFlags = HideFlags.DontSave;
+                        _tex.LoadRawTextureData(image);
+                        _tex.Apply();
+
+                        result.Ready(_tex);
                         break;
                     }
             }

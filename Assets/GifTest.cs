@@ -20,13 +20,10 @@ public class GifTest : MonoBehaviour {
     private List<float> widthToHeightRatio = new List<float>();
 
     // Use this for initialization
-    void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
+    void Start ()
+    {
+        //print("Materials " + Resources.FindObjectsOfTypeAll(typeof(Material)).Length);		
+        print("Texture2D: " + Resources.FindObjectsOfTypeAll(typeof(Texture2D)).Length);
 	}
 
     //-------------------------------------------------
@@ -586,7 +583,10 @@ public class GifTest : MonoBehaviour {
 
         Debug.Log("Done spawning originally stickers. Now spawned the duplicated");
 
-        //StartCoroutine(SpawnCopy());
+        //print("Materials " + Resources.FindObjectsOfTypeAll(typeof(Material)).Length);
+        print("Texture2D: " + Resources.FindObjectsOfTypeAll(typeof(Texture2D)).Length);
+
+        StartCoroutine(SpawnCopy());
     }
 
     IEnumerator SpawnCopy()
@@ -602,12 +602,16 @@ public class GifTest : MonoBehaviour {
                     new Vector3(Random.Range(-2f, 2f), transform.position.y + Random.Range(-2f, 2f), Random.Range(-2f, 2f)),
                     RandomQuaternion()
                 );
-                _gif.GetComponentInChildren<Renderer>().material = gifs[counter].GetComponentInChildren<Renderer>().sharedMaterial;
+                _gif.GetComponentInChildren<Renderer>().material = gifs[counter].GetComponentInChildren<Renderer>().material;
             }           
             counter++;
             yield return new WaitForSeconds(1f / spawnRate / 2f);
         }
         Debug.Log("Done spawning duplicated");
+
+        //print("Materials " + Resources.FindObjectsOfTypeAll(typeof(Material)).Length);
+        print("Texture2D: " + Resources.FindObjectsOfTypeAll(typeof(Texture2D)).Length);
+
     }
 
     Quaternion RandomQuaternion()

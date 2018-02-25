@@ -875,7 +875,7 @@ MonoBehaviour:
   m_NormalGifApi: http://api.giphy.com/v1/gifs
   m_StickerApi: http://api.giphy.com/v1/stickers
   m_UploadApi: http://upload.giphy.com/v1/gifs
-  m_ResultLimit: 1
+  m_ResultLimit: 100
   m_ResultOffset: 0
   m_Rating: 0
   m_Language: 0

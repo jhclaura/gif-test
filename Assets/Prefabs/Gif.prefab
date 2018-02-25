@@ -37,6 +37,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4864922900505046}
+  - component: {fileID: 114226353980882048}
   m_Layer: 0
   m_Name: Gif
   m_TagString: Untagged
@@ -112,6 +113,23 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1159549222208306}
   m_Mesh: {fileID: 4300000, guid: 76a11065465083f4bad59bded8fb89eb, type: 3}
+--- !u!114 &114226353980882048
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1990123388473576}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8913fe7c089a1489a9f25c0586c8bdd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gifPlayer: {fileID: 114775768699826236}
+  frameList: []
+  currentFrame:
+    Image: 
+    Delay: 0
+    Texture: {fileID: 0}
 --- !u!114 &114775768699826236
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -136,3 +154,4 @@ MonoBehaviour:
   GifTexture: {fileID: 0}
   _targetComponent: {fileID: 23175921980794326}
   _targetMaterial: 0
+  _cachedFrames: []

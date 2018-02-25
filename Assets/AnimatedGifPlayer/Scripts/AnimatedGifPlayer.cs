@@ -153,8 +153,8 @@ namespace OldMoatGames {
         private bool _bufferAllFrames;
         private bool _useThreadedDecoder;
         private float _secondsTillNextFrame; // Seconds till next frame
-        private List<GifDecoder.GifFrame> _cachedFrames; // Cache of all frames that have been decoded
-        private GifDecoder.GifFrame CurrentFrame { get; set; } // The current frame that is being displayed
+        public List<GifDecoder.GifFrame> _cachedFrames; // Cache of all frames that have been decoded
+        public GifDecoder.GifFrame CurrentFrame { get; set; } // The current frame that is being displayed
         private int CurrentFrameNumber { get; set; } // The current frame we are at
 
         private Thread _decodeThread;
@@ -164,7 +164,14 @@ namespace OldMoatGames {
         private readonly object _locker = new object();
         private float _editorPreviousUpdateTime; // Time of previous update in editor
 
-        private List<Texture2D> _cachedTexture2D;
+        class ThreadInfo
+        {
+            public bool LoopDecoder;
+            public bool ReadAllFrames;
+            public MainThreadQueue MainThreadQueue;
+        }
+        MainThreadQueue mainThreadQueue;
+        Renderer targetRenderer;
         #endregion
 
         #region Unity Events
@@ -174,19 +181,29 @@ namespace OldMoatGames {
             if (State == GifPlayerState.PreProcessing) Init();
         }
 
+        void OnDestory()
+        {
+            DisposeTextures();
+        }
+
         void Start() {
-            OnAllFramesRead += CacheAllTexture2D;
+            //OnAllFramesRead += CacheAllTexture2D;
         }
 
         public void Update() {
+
             //check if we need to update the gif frame
             CheckFrameChange();
+
+            if (!_useThreadedDecoder || (_decodeThread == null && !_decodeThread.IsAlive) || !_cacheFrames) return;
+            //Debug.Log("mainThreadQueue.Execute");
+            mainThreadQueue.Execute(10);
         }
 
         private void OnApplicationQuit() {
             EndDecodeThread();
+            DisposeTextures();
         }
-
         #endregion
 
         #region Public API
@@ -231,7 +248,6 @@ namespace OldMoatGames {
             if (_cacheFrames) {
                 //init the cache
                 _cachedFrames = new List<GifDecoder.GifFrame>();
-                _cachedTexture2D = new List<Texture2D>();
             }
 
             // Store the target component
@@ -266,24 +282,6 @@ namespace OldMoatGames {
 #endif
         }
 
-        private void OnDestroy()
-        {
-            // Release cache
-            //foreach(GifDecoder.GifFrame g_f in _cachedFrames)
-            //{
-            //    if (g_f.Texture != null)
-            //    {
-            //        Destroy(g_f.Texture);
-            //        g_f.Texture = null;
-            //    }
-            //}
-            _cachedFrames.Clear();
-            if (_gifDecoder!=null)
-            {
-                _gifDecoder.ReleaseTexture();
-            }
-        }
-
         /// <summary>
         /// Start playback.
         /// </summary>
@@ -316,28 +314,19 @@ namespace OldMoatGames {
             return _gifDecoder == null ? 0 : _gifDecoder.GetFrameCount();
         }
 
-        public void CacheAllTexture2D() {
-            if (_cachedTexture2D.Count > 0)
-                return;
-            // Create Texture2D & add to list
-            StartCoroutine(CreateSaveTexture());
-        }
-
-        private IEnumerator CreateSaveTexture()
+        public void DisposeTextures()
         {
-            int count = 0;
-            while(count<_cachedFrames.Count)
+            if (GifTexture != null) Destroy(GifTexture);
+            for (int i = 0; i < _cachedFrames.Count; i++)
             {
-                Texture2D _tex = CreateTexture(_gifDecoder.GetFrameWidth(), _gifDecoder.GetFrameHeight(), CreateMipMap);
-                _tex.hideFlags = HideFlags.HideAndDontSave;
-                _tex.LoadRawTextureData(_cachedFrames[count].Image);
-                _tex.Apply();
-                _cachedTexture2D.Add(_tex);
-
-                count++;
-                yield return null;
-                yield return null;
+                if (_cachedFrames[i].Texture != null)
+                {
+                    Destroy(_cachedFrames[i].Texture);
+                    _cachedFrames[i].Texture = null;
+                }
             }
+            _cachedFrames.Clear();
+            if (_gifDecoder != null) _gifDecoder.ReleaseTexture();
         }
         #endregion
 
@@ -465,12 +454,27 @@ namespace OldMoatGames {
             // Renderer
             if (_targetComponent is Renderer) {
                 var target = (Renderer)_targetComponent;
+                //v.1
+                /*
                 if (target.material == null) return;
                 if (target.materials.Length > 0 && target.materials.Length > _targetMaterial) {
                     target.materials[_targetMaterial].mainTexture = GifTexture;
                 } else {
                     target.material.mainTexture = GifTexture;
                 }
+                */
+
+                //v.2
+                if (target.sharedMaterial == null) return;
+                if (target.sharedMaterials.Length > 0 && target.sharedMaterials.Length > _targetMaterial)
+                {
+                    target.materials[_targetMaterial].mainTexture = GifTexture;
+                }
+                else
+                {
+                    target.material.mainTexture = GifTexture;
+                }
+                targetRenderer = target;
                 return;
             }
 
@@ -681,12 +685,12 @@ namespace OldMoatGames {
         // Update the target texture
         private void UpdateTexture() {
             // ver.1 - Upload texture data            
-            GifTexture.LoadRawTextureData(CurrentFrame.Image);
+            //GifTexture.LoadRawTextureData(CurrentFrame.Image);
             // Apply
-            GifTexture.Apply();
-            
+            //GifTexture.Apply();
+
             // ver.2 - Swap texture
-            //GifTexture = CurrentFrame.Texture;           
+            targetRenderer.sharedMaterial.mainTexture = CurrentFrame.Texture;
         }
 
         // Starts reading a frame
@@ -717,10 +721,28 @@ namespace OldMoatGames {
             if (!_useThreadedDecoder || (_decodeThread != null && _decodeThread.IsAlive)) return;
 
             _threadIsCanceled = false;
-            _decodeThread = new Thread(() => FrameDataThread(!_cacheFrames, _bufferAllFrames));
+
+            // v.1
+            //_decodeThread = new Thread(() => FrameDataThread(!_cacheFrames, _bufferAllFrames));
+            //_decodeThread.Name = "gifDecoder" + _decodeThread.ManagedThreadId;
+            //_decodeThread.IsBackground = true;
+            //_decodeThread.Start();
+
+            //v.2
+            mainThreadQueue = new MainThreadQueue();
+
+            var threadStart = new ParameterizedThreadStart(FrameDataThread);
+            var threadInfo = new ThreadInfo();
+            threadInfo.LoopDecoder = !_cacheFrames;
+            threadInfo.ReadAllFrames = _bufferAllFrames;
+            threadInfo.MainThreadQueue = mainThreadQueue;
+
+            _decodeThread = new Thread(threadStart);
             _decodeThread.Name = "gifDecoder" + _decodeThread.ManagedThreadId;
             _decodeThread.IsBackground = true;
-            _decodeThread.Start();
+            _decodeThread.Start(threadInfo);
+
+            Debug.Log("Start Thread");
 #endif
         }
 
@@ -742,8 +764,8 @@ namespace OldMoatGames {
                     if (_cacheFrames && _gifDecoder.AllFramesRead) {
                         _frameIsReady = true;
                         //Debug.Log("_frameIsReady cuz AllFramesRead");
-                        if (OnAllFramesRead != null)
-                            OnAllFramesRead();
+                        //if (OnAllFramesRead != null)
+                            //OnAllFramesRead();
                         break;
                     }
 
@@ -751,6 +773,78 @@ namespace OldMoatGames {
 
                     if (readAllFrames) {
                         if (_gifDecoder.AllFramesRead) {
+                            _frameIsReady = true;
+                            //Debug.Log("_frameIsReady cuz readAllFrames");
+                            break;
+                        }
+                        continue;
+                    }
+                    _frameIsReady = true;
+                    //Debug.Log("_frameIsReady");
+                }
+                _wh.WaitOne(); // Wait for signal that frame must be read
+            }
+            _threadIsCanceled = true;
+#if !UNITY_WSA
+            _wh.Close();
+#endif
+        }
+
+        // The decode thread
+        private void FrameDataThread(object StartParam)
+        {
+            ThreadInfo threadInfo = (ThreadInfo)StartParam;
+            var mainThreadQueue = threadInfo.MainThreadQueue;
+            var newTextureResult = new MainThreadQueue.Result<Texture2D>();
+            bool loopDecoder = threadInfo.LoopDecoder;
+            bool readAllFrames = threadInfo.ReadAllFrames;
+
+            _wh.WaitOne();
+            while (!_threadIsCanceled)
+            {
+                lock (_locker)
+                {
+                    // Read the next frame
+                    _gifDecoder.ReadNextFrame(loopDecoder);
+
+                    if (_cacheFrames && _gifDecoder.AllFramesRead)
+                    {
+                        _frameIsReady = true;
+                        //Debug.Log("_frameIsReady cuz AllFramesRead");
+                        //if (OnAllFramesRead != null)
+                            //OnAllFramesRead();
+                        break;
+                    }
+
+                    //if (_cacheFrames) AddFrameToCache(_gifDecoder.GetCurrentFrame());
+                    if (_cacheFrames)
+                    {
+                        // AddFrameToCache
+                        GifDecoder.GifFrame frame = _gifDecoder.GetCurrentFrame();
+
+                        // Create a coopy of the data to add to the cache since the frame data array is reused for the next frame
+                        var copyOfImage = new byte[frame.Image.Length];
+                        Buffer.BlockCopy(frame.Image, 0, copyOfImage, 0, frame.Image.Length);
+                        frame.Image = copyOfImage;
+
+                        mainThreadQueue.NewTexture2D(
+                            _gifDecoder.GetFrameWidth(),
+                            _gifDecoder.GetFrameHeight(),
+                            copyOfImage,
+                            newTextureResult
+                        );
+                        frame.Texture = newTextureResult.Value;
+                        //Debug.Log("Add frame to main thread");
+
+                        // Add frame to frame list
+                        lock (_cachedFrames) _cachedFrames.Add(frame);
+                        //Debug.Log("added frame to cache");
+                    }
+
+                    if (readAllFrames)
+                    {
+                        if (_gifDecoder.AllFramesRead)
+                        {
                             _frameIsReady = true;
                             //Debug.Log("_frameIsReady cuz readAllFrames");
                             break;

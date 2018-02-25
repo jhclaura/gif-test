@@ -19,6 +19,7 @@ namespace OldMoatGames {
         /// <summary>
         /// Holds frame data and frame delay
         /// </summary>
+        [Serializable]
         public class GifFrame
         {
             public GifFrame(byte[] im, float del)
@@ -36,6 +37,8 @@ namespace OldMoatGames {
             /// Time in seconds till next frame
             /// </summary>
             public float Delay;
+
+            public UnityEngine.Texture2D Texture = null;
         }
 
         // ver - Original
@@ -472,14 +475,14 @@ namespace OldMoatGames {
             _status = Status.StatusOk;
             _frameCount = 0;
             // LAURAAA
-            //if (_currentFrame != null)
-            //{
-            //    if (_currentFrame.Texture != null)
-            //    {
-            //        UnityEngine.Object.Destroy(_currentFrame.Texture);
-            //        _currentFrame.Texture = null;
-            //    }
-            //}            
+            if (_currentFrame != null)
+            {
+                if (_currentFrame.Texture != null)
+                {
+                    UnityEngine.Object.Destroy(_currentFrame.Texture);
+                    _currentFrame.Texture = null;
+                }
+            }
             // LAURAAA
             _currentFrame = null;
             AllFramesRead = false;
@@ -490,14 +493,14 @@ namespace OldMoatGames {
         public void ReleaseTexture()
         {
             // LAURAAA
-            //if (_currentFrame != null)
-            //{
-            //    if (_currentFrame.Texture != null)
-            //    {
-            //        UnityEngine.Object.Destroy(_currentFrame.Texture);
-            //        _currentFrame.Texture = null;
-            //    }
-            //}
+            if (_currentFrame != null)
+            {
+                if (_currentFrame.Texture != null)
+                {
+                    UnityEngine.Object.Destroy(_currentFrame.Texture);
+                    _currentFrame.Texture = null;
+                }
+            }
             // LAURAAA
             _currentFrame = null;
             _gct = null;
